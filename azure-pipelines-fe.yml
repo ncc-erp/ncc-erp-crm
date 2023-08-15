@@ -1,0 +1,55 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  branches:
+    include:
+      - dev
+      - stg
+
+  paths:
+    include:
+      - vue
+      - azure-pipelines-fe.yml
+
+pool:
+  name: 'ERP_DEV'
+
+jobs:
+  - job: VueBuild
+    steps:
+
+      - script: |
+          cd vue/
+          export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+          nvm use 14.17.6
+          node -v
+          echo "=== INSTALL PACKAGE ==="
+          npm install
+        displayName: 'Install Package'
+      
+      - script: |
+          cd vue/
+          export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+          nvm use 14.17.6          
+          npm run build --prod
+        displayName: 'Build Frontend'
+      
+      - script: |
+          cd vue/dist/
+          zip -r frontend_publish.zip *
+        displayName: 'Compress Build FE'
+        
+      - task: PublishBuildArtifacts@1
+        inputs:
+          PathtoPublish: 'vue/dist/frontend_publish.zip'
+          ArtifactName: 'frontend'
+          publishLocation: 'Container'
+        displayName: 'Publish Artifacts Frontend'
+            

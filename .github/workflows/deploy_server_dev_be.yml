@@ -1,0 +1,86 @@
+name: Deploy Workflow CRM_BE Dev
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: self-hosted
+    name: Build Workflow CRM_BE Dev
+    environment: dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build Migrator
+        run: |
+          export PATH=$PATH:/opt/dotnet2/
+          cd aspnet-core/src/CRM.Migrator
+          dotnet2 publish -c Release
+
+      - name: Copy New Migrator
+        run: |
+          cd aspnet-core/src/CRM.Migrator/bin/Release/netcoreapp2.2/publish/
+          rm -rf appsettings.json
+          cp -r * /var/www/migrator/crm/dev-dotnet-migrator-crm/
+
+      - name: Build Host
+        run: |
+          export PATH=$PATH:/opt/dotnet2/
+          cd aspnet-core/src/CRM.Web.Host
+          dotnet2 publish -c Release
+
+      - name: Copy New Host
+        run: |
+          cd aspnet-core/src/CRM.Web.Host/bin/Release/netcoreapp2.2/publish/
+          rm -rf appsettings.json
+          cp -r * /var/www/app/crm/dev-dotnet-host-crm/
+  
+  
+  deploy:
+    runs-on:  self-hosted
+    name: Deploy Workflow CRM_BE Dev
+    environment: dev
+    needs:
+      - build
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+      
+    - name: Update Appsettings
+      run: |
+        cd aspnet-core/
+        bash parse_env.sh
+      env:
+        API_URL: ${{ secrets.API_URL_DEV }}
+        URL: ${{ secrets.URL_DEV }}
+        DB_HOST: ${{ secrets.DB_HOST_DEV }}
+        DB_NAME: ${{ secrets.DB_NAME_DEV }}
+        DB_PASS: ${{ secrets.DB_PASS_DEV }}
+        DB_USER: ${{ secrets.DB_USER_DEV }}
+        API_BE: ${{ secrets.API_BE_DEV }}
+        SEC_KEY: ${{ secrets.SEC_KEY_DEV }}
+        
+        
+    - name: Migrate Database
+      run: |
+        export PATH=$PATH:/opt/dotnet2/
+        cd aspnet-core/
+        cp appsettings.json /var/www/migrator/crm/dev-dotnet-migrator-crm/
+        cd /var/www/migrator/crm/dev-dotnet-migrator-crm/
+        dotnet2 CRM.Migrator.dll -q
+    
+    - name: Restart Server
+      run: |
+        sudo systemctl stop erp-crm.service
+        cd aspnet-core/
+        cp appsettings.json /var/www/app/crm/dev-dotnet-host-crm/
+        cd /var/www/app/crm/dev-dotnet-host-crm/
+        mkdir -p /var/www/app/crm/dev-dotnet-host-crm/Logs/
+        touch /var/www/app/crm/dev-dotnet-host-crm/Logs/logs.txt
+        chmod 777 -R Logs/
+        chmod 777 -R wwwroot/
+        sudo systemctl start erp-crm.service
+        sudo systemctl status erp-crm.service
+    

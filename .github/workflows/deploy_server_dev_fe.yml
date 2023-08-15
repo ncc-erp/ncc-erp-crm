@@ -1,0 +1,50 @@
+name: Deploy Workflow W2 Dev
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on:  self-hosted
+    name: Build Workflow CRM_FE Dev
+    environment: dev
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    
+    - name: VueBuild
+      run: |
+        cd vue/
+        export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+        nvm use 14.17.0
+        node -v
+        echo "=== INSTALL PACKAGE ==="
+        npm install
+        npm run build --prod
+        
+    - name: Copy VueBuild
+      run: |
+        cd vue/dist/
+        rm -rf env-config.js
+        cp -r * /var/www/app/crm/dev-fe-crm/
+        
+    - name: Update Env-Config
+      run: |
+        cd vue/
+        bash parse_env.sh
+      env:
+        API_URL: ${{ secrets.API_URL_DEV }}
+      
+    - name: Restart Nginx
+      run: |
+        cd vue/
+        cp env-config.js /var/www/app/crm/dev-fe-crm/
+        sudo systemctl reload nginx
+        
+        
+        
+      
+        
+     

@@ -1,0 +1,63 @@
+{
+  "name": "iview",
+  "version": "4.7.1",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build"
+  },
+  "dependencies": {
+    "@aspnet/signalr": "^1.0.0",
+    "@tinymce/tinymce-vue": "^3.2.2",
+    "abp-web-resources": "^3.8.2",
+    "axios": "^0.18.0",
+    "famfamfam-flags": "^1.0.0",
+    "file-saver": "^2.0.2",
+    "iview": "~3.0.0",
+    "js-cookie": "^2.2.0",
+    "register-service-worker": "^1.0.0",
+    "sass": "^1.26.10",
+    "sass-loader": "^9.0.2",
+    "scss-loader": "0.0.1",
+    "view-design": "^4.3.2",
+    "vue": "^2.5.17",
+    "vue-class-component": "^6.0.0",
+    "vue-google-login": "^2.0.5",
+    "vue-google-signin-button-directive": "^1.0.3",
+    "vue-i18n": "^8.18.2",
+    "vue-moment": "^4.1.0",
+    "vue-property-decorator": "^7.0.0",
+    "vue-router": "^3.0.1",
+    "vuex": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/axios": "^0.14.0",
+    "@types/js-cookie": "^2.1.0",
+    "@vue/cli-plugin-babel": "^3.0.4",
+    "@vue/cli-plugin-pwa": "^3.0.4",
+    "@vue/cli-plugin-typescript": "^3.0.4",
+    "@vue/cli-service": "^3.0.4",
+    "less": "^2.7.3",
+    "less-loader": "^4.0.5",
+    "sass": "^1.26.10",
+    "sass-loader": "^9.0.2",
+    "typescript": "^3.0.0",
+    "vue-template-compiler": "^2.5.17",
+    "webpack": "^4.43.0"
+  },
+  "babel": {
+    "presets": [
+      "@vue/app"
+    ]
+  },
+  "postcss": {
+    "plugins": {
+      "autoprefixer": {}
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 8"
+  ]
+}

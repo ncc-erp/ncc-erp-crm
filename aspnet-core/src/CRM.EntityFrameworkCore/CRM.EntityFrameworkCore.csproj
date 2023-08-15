@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <AssetTargetFallback>$(AssetTargetFallback);portable-net45+win8+wp8+wpa81;</AssetTargetFallback>
+    <RootNamespace>CRM</RootNamespace>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Migrations\20180726102624_Upgrade_ABP_380.cs" />
+    <Compile Remove="Migrations\20180927062408_test.cs" />
+    <Compile Remove="Migrations\20190111071724_Upgraded_To_Abp_v4_1_0.cs" />
+    <Compile Remove="Migrations\20200915061455_Update_Deal_Project.cs" />
+    <Compile Remove="Migrations\20200915061455_Update_Deal_Project.Designer.cs" />
+    <Compile Remove="Migrations\20201002100007_add_table_Teams_UserTeams_TeamRoles_UserTeamRoles.cs" />
+    <Compile Remove="Migrations\20201002100007_add_table_Teams_UserTeams_TeamRoles_UserTeamRoles.Designer.cs" />
+    <Compile Remove="Migrations\20201005022013_change_table_name_TeamRoles_UserTeamRoles.cs" />
+    <Compile Remove="Migrations\20201005022013_change_table_name_TeamRoles_UserTeamRoles.Designer.cs" />
+    <Compile Remove="Migrations\20201005030127_add_table_Teams_UserTeamPermissions_TeamPermissions.cs" />
+    <Compile Remove="Migrations\20201005030127_add_table_Teams_UserTeamPermissions_TeamPermissions.Designer.cs" />
+    <Compile Remove="Migrations\20201207041059_add_table_EmailTemplates.cs" />
+    <Compile Remove="Migrations\20201207041059_add_table_EmailTemplates.Designer.cs" />
+    <Compile Remove="Migrations\20201209020348_add_table_Campaigns_table_CampaignContacts.cs" />
+    <Compile Remove="Migrations\20201209020348_add_table_Campaigns_table_CampaignContacts.Designer.cs" />
+    <Compile Remove="Migrations\20201209020523_add_table_Campaigns_table_CampaignContacts.cs" />
+    <Compile Remove="Migrations\20201209020523_add_table_Campaigns_table_CampaignContacts.Designer.cs" />
+    <Compile Remove="Migrations\20220104034428_addTblRegion_TechStack_TechStackDeal.cs" />
+    <Compile Remove="Migrations\20220104034428_addTblRegion_TechStack_TechStackDeal.Designer.cs" />
+    <Compile Remove="Migrations\20220207073345_addTblSkillLevelAndRelationship.cs" />
+    <Compile Remove="Migrations\20220207073345_addTblSkillLevelAndRelationship.Designer.cs" />
+    <Compile Remove="Migrations\20220207080441_updateQuantityDealSkillLevel.cs" />
+    <Compile Remove="Migrations\20220207080441_updateQuantityDealSkillLevel.Designer.cs" />
+    <Compile Remove="Migrations\20220211015120_updateTblDealDetail.cs" />
+    <Compile Remove="Migrations\20220211015120_updateTblDealDetail.Designer.cs" />
+    <Compile Remove="Migrations\20220211015644_updateTblDealDetail.cs" />
+    <Compile Remove="Migrations\20220211015644_updateTblDealDetail.Designer.cs" />
+    <Compile Remove="Migrations\20220211033247_addTblDealDetail.cs" />
+    <Compile Remove="Migrations\20220211033247_addTblDealDetail.Designer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.2.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="2.2.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.2.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CRM.Core\CRM.Core.csproj" />
+  </ItemGroup>
+</Project>
