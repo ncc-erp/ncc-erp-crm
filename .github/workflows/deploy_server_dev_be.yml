@@ -73,7 +73,7 @@ jobs:
         cd /var/www/app_git/crm/backend/
         mkdir -p /var/www/app_git/crm/backend/App_Data/Logs/
         cp -r /home/nccsoft/data_git/crm/Logs/* /var/www/app_git/crm/backend/App_Data/Logs/
-        chmod 777 -R Logs/
+        chmod 777 -R App_Data/Logs/
         chmod 777 -R wwwroot/
         sudo service erp-crm-git start
         sudo service erp-crm-git status
