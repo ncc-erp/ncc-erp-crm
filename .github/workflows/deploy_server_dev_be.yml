@@ -12,6 +12,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      
+      - name: Backup Log
+        run: |
+          cp -r /var/www/app_git/crm/backend/App_Data/Logs/* /home/nccsoft/data_git/crm/Logs/
 
       - name: Build Migrator
         run: |
@@ -23,7 +27,7 @@ jobs:
         run: |
           cd aspnet-core/src/CRM.Migrator/bin/Release/netcoreapp2.2/publish/
           rm -rf appsettings.json
-          cp -r * /var/www/migrator/crm/dev-dotnet-migrator-crm/
+          cp -r * /var/www/migrator_git/crm/backend-migrator/
 
       - name: Build Host
         run: |
@@ -35,7 +39,7 @@ jobs:
         run: |
           cd aspnet-core/src/CRM.Web.Host/bin/Release/netcoreapp2.2/publish/
           rm -rf appsettings.json
-          cp -r * /var/www/app/crm/dev-dotnet-host-crm/
+          cp -r * /var/www/app_git/crm/backend/
   
   
   deploy:
@@ -51,36 +55,26 @@ jobs:
     - name: Update Appsettings
       run: |
         cd aspnet-core/
-        bash parse_env.sh
-      env:
-        API_URL: ${{ secrets.API_URL_DEV }}
-        URL: ${{ secrets.URL_DEV }}
-        DB_HOST: ${{ secrets.DB_HOST_DEV }}
-        DB_NAME: ${{ secrets.DB_NAME_DEV }}
-        DB_PASS: ${{ secrets.DB_PASS_DEV }}
-        DB_USER: ${{ secrets.DB_USER_DEV }}
-        API_BE: ${{ secrets.API_BE_DEV }}
-        SEC_KEY: ${{ secrets.SEC_KEY_DEV }}
-        
+        echo '${{ secrets.APP_SETTING_DEV }}' > appsettings.json    
         
     - name: Migrate Database
       run: |
+        sudo service erp-crm-git stop
         export PATH=$PATH:/opt/dotnet2/
         cd aspnet-core/
-        cp appsettings.json /var/www/migrator/crm/dev-dotnet-migrator-crm/
-        cd /var/www/migrator/crm/dev-dotnet-migrator-crm/
+        cp appsettings.json /var/www/migrator_git/crm/backend-migrator/
+        cd /var/www/migrator_git/crm/backend-migrator/
         dotnet2 CRM.Migrator.dll -q
     
     - name: Restart Server
       run: |
-        sudo systemctl stop erp-crm.service
         cd aspnet-core/
-        cp appsettings.json /var/www/app/crm/dev-dotnet-host-crm/
-        cd /var/www/app/crm/dev-dotnet-host-crm/
-        mkdir -p /var/www/app/crm/dev-dotnet-host-crm/Logs/
-        touch /var/www/app/crm/dev-dotnet-host-crm/Logs/logs.txt
+        cp appsettings.json /var/www/app_git/crm/backend/
+        cd /var/www/app_git/crm/backend/
+        mkdir -p /var/www/app_git/crm/backend/App_Data/Logs/
+        cp -r /home/nccsoft/data_git/crm/Logs/*  /var/www/app_git/crm/backend/App_Data/Logs/
         chmod 777 -R Logs/
         chmod 777 -R wwwroot/
-        sudo systemctl start erp-crm.service
-        sudo systemctl status erp-crm.service
+        sudo service erp-crm-git start
+        sudo service erp-crm-git status
     
