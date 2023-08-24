@@ -2,7 +2,10 @@ name: Deploy Workflow W2 Dev
 on:
   push:
     branches:
-      - main
+      - dev
+    paths:
+      - 'vue/**'
+      - '.github/workflows/deploy_server_dev_fe.yml'
 jobs:
   build:
     runs-on:  self-hosted
@@ -11,8 +14,22 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v3
+
+    - name: Cache Node Module
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-node-modules
+      with:
+        path: |
+          **/node_modules
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package.json,**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
     
-    - name: VueBuild
+    - name: npm install
+      if: steps.cache-nodemodules.outputs.cache-hit != 'true'
       run: |
         cd vue/
         export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
@@ -22,25 +39,32 @@ jobs:
         node -v
         echo "=== INSTALL PACKAGE ==="
         npm install
+
+    - name: VueBuild
+      run: |
+        cd vue/
+        export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+        nvm use 14.17.0
+        node -v
         npm run build --prod
         
     - name: Copy VueBuild
       run: |
         cd vue/dist/
         rm -rf env-config.js
-        cp -r * /var/www/app/crm/dev-fe-crm/
+        cp -r * /var/www/app_git/crm/frontend/
         
     - name: Update Env-Config
       run: |
         cd vue/
-        bash parse_env.sh
-      env:
-        API_URL: ${{ secrets.API_URL_DEV }}
+        echo '${{ secrets.APP_CONFIG_DEV }}' > env-config.js 
       
     - name: Restart Nginx
       run: |
         cd vue/
-        cp env-config.js /var/www/app/crm/dev-fe-crm/
+        cp env-config.js /var/www/app_git/crm/frontend/
         sudo systemctl reload nginx
         
         

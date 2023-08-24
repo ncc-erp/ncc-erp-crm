@@ -3,7 +3,9 @@ on:
   push:
     branches:
       - dev
-
+    paths:
+    - 'aspnet-core/**'
+    - '.github/workflows/deploy_server_dev_be.yml'
 jobs:
   build:
     runs-on: self-hosted
