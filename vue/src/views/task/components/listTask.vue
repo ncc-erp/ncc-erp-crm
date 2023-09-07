@@ -44,7 +44,7 @@
               </Col>
               <Col span="7">
                 <DatePicker name="taskStartDate_filter" style="width: 100%" v-model="formData.startDate"
-                  @on-change="filterSearch()" type="date" :placeholder="$t('project.startTime')"></DatePicker>
+                  @on-change="fecthData()" type="date" :placeholder="$t('project.startTime')"></DatePicker>
               </Col>
               <Col span="7">
               <Input 
@@ -89,7 +89,7 @@
               </Col>
               <Col span="7">
                 <DatePicker name="taskEndDate_filter" style="width: 100%" v-model="formData.endDate"
-                  @on-change="filterSearch()" type="date" :placeholder="$t('project.endTime')"></DatePicker>
+                  @on-change="fecthData()" type="date" :placeholder="$t('project.endTime')"></DatePicker>
               </Col>
 
               <Col span="7">
@@ -199,17 +199,13 @@ export default class ListTasks extends AbpBase {
   private dataTasks: any = [];
   private dataAllTasks: any = []
   private columns: any = [];
-  currentPage: number = 1
-  totalPage: number = 0
-  pageSize: number = 10
-
   formData: any = {
     searchUser: "",
     searchEntity: "",
     param: {
       filterItems: [],
       searchText: "",
-      maxResultCount: this.pageSize,
+      maxResultCount: 10,
       skipCount: 0
 
     }
@@ -225,7 +221,9 @@ export default class ListTasks extends AbpBase {
 
   typeList = ListType
   statusList = []
-
+  currentPage: number = 1
+  totalPage: number = 0
+  pageSize: number = 10
   showAdd(show) {
     this.isShowAddTask = show
     this.fecthData()
@@ -274,12 +272,8 @@ export default class ListTasks extends AbpBase {
   }
   async fecthData() {
     this.formData.param.maxResultCount = this.pageSize
-    
-    let currentpage = parseInt(localStorage.getItem("currentPage"))
-    if(currentpage) this.currentPage = currentpage;
 
     this.formData.param.skipCount = (this.pageSize * (this.currentPage - 1))
-
     let response = await this.$store.dispatch({
       type: "task/getAllPaging",
       data: this.formData
@@ -290,8 +284,6 @@ export default class ListTasks extends AbpBase {
     // this.entityList = entityList
     this.dataTasks = response.result.items;
     this.totalPage = response.result.totalCount;
-
-    localStorage.setItem("currentPage", "")
   }
 
   changeViewList() {
