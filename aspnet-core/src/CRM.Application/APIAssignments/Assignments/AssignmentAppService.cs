@@ -180,6 +180,8 @@ namespace CRM.APIAssignments.Assignments
             var query = (from a in WorkScope.GetAll<Assignment>()
                          join e in WorkScope.GetAll<EntityAssignment>() on a.Id equals e.AssignmentId
                          join ua in WorkScope.GetRepo<UserAssignment>().GetAllIncluding(s => s.User, L => L.User2) on a.Id equals ua.AssignmentId
+                         where (!input.StartDate.HasValue || a.Deadline >= input.StartDate)
+                         where (!input.EndDate.HasValue || a.Deadline <= input.EndDate)
                          where (input.EntityType == null || e.EntityType == input.EntityType)
                          where (input.Priority == null || a.Priority == input.Priority)
                          where (input.Status == null || a.Status == input.Status)
@@ -204,8 +206,6 @@ namespace CRM.APIAssignments.Assignments
                              FullName = $"{ua.User.Surname} {ua.User.Name}"
                          }).WhereIf(!input.SearchUser.IsNullOrWhiteSpace(), s => s.FullName.Contains(input.SearchUser, StringComparison.OrdinalIgnoreCase))
                         .WhereIf(!input.SearchEntity.IsNullOrWhiteSpace(), s => s.EntityName.Contains(input.SearchEntity, StringComparison.OrdinalIgnoreCase))
-                        .WhereIf(input.StartDate.HasValue, s => s.Deadline >= input.StartDate)
-                        .WhereIf(input.EndDate.HasValue, s => s.Deadline <= input.EndDate)
                         .AsQueryable();
             /*foreach (var a in query)
             {
