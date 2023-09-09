@@ -14,10 +14,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      
-      - name: Backup Log
-        run: |
-          cp -r /var/www/app_git/crm/backend/App_Data/Logs/* /home/nccsoft/data_git/crm/Logs/
 
       - name: Build Migrator
         run: |
@@ -37,11 +33,21 @@ jobs:
           cd aspnet-core/src/CRM.Web.Host
           dotnet2 publish -c Release
 
+      - name: Backup Log
+        run: |
+          cp -r /var/www/app_git/crm/backend/App_Data/Logs/* /home/nccsoft/data_git/crm/Logs/
+          rm -rf /var/www/app_git/crm/backend/*
+
       - name: Copy New Host
         run: |
           cd aspnet-core/src/CRM.Web.Host/bin/Release/netcoreapp2.2/publish/
           rm -rf appsettings.json
+          rm -rf appsettings.Staging.json
           cp -r * /var/www/app_git/crm/backend/
+          cd /var/www/app_git/crm/backend/
+          mkdir -p /var/www/app_git/crm/backend/App_Data/Logs/
+          cp -r /home/nccsoft/data_git/crm/Logs/* /var/www/app_git/crm/backend/App_Data/Logs/
+          chmod 777 -R App_Data/Logs/
   
   
   deploy:
@@ -72,11 +78,6 @@ jobs:
       run: |
         cd aspnet-core/
         cp appsettings.json /var/www/app_git/crm/backend/
-        cd /var/www/app_git/crm/backend/
-        mkdir -p /var/www/app_git/crm/backend/App_Data/Logs/
-        cp -r /home/nccsoft/data_git/crm/Logs/* /var/www/app_git/crm/backend/App_Data/Logs/
-        chmod 777 -R App_Data/Logs/
-        chmod 777 -R wwwroot/
         sudo service erp-crm-git start
         sudo service erp-crm-git status
     

@@ -54,6 +54,7 @@ jobs:
       run: |
         cd vue/dist/
         rm -rf env-config.js
+        rm -rf /var/www/app_git/crm/frontend/*
         cp -r * /var/www/app_git/crm/frontend/
         
     - name: Update Env-Config
