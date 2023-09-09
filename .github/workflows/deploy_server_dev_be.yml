@@ -25,7 +25,7 @@ jobs:
         run: |
           cd aspnet-core/src/CRM.Migrator/bin/Release/netcoreapp2.2/publish/
           rm -rf appsettings.json
-          cp -r * /var/www/migrator_git/crm/backend-migrator/
+          cp -r . /var/www/migrator_git/crm/backend-migrator/
 
       - name: Build Host
         run: |
