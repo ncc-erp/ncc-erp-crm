@@ -1,4 +1,4 @@
-name: Deploy Workflow W2 Dev
+name: Deploy CRM-FE Dev
 on:
   push:
     branches:
@@ -8,8 +8,8 @@ on:
       - '.github/workflows/deploy_server_dev_fe.yml'
 jobs:
   build:
-    runs-on:  self-hosted
-    name: Build Workflow CRM_FE Dev
+    runs-on:  dev
+    name: Build CRM_FE Dev
     environment: dev
     steps:
     - name: Checkout
@@ -50,11 +50,13 @@ jobs:
         node -v
         npm run build --prod
         
-    - name: Copy VueBuild
+    - name: Backup - Copy VueBuild
       run: |
+        rm -rf /var/www/app_git/crm/frontend-bk/*
+        cp -rf /var/www/app_git/crm/frontend/* /var/www/app_git/crm/frontend-bk/
+        rm -rf /var/www/app_git/crm/frontend/*
         cd vue/dist/
         rm -rf env-config.js
-        rm -rf /var/www/app_git/crm/frontend/*
         cp -r * /var/www/app_git/crm/frontend/
         
     - name: Update Env-Config

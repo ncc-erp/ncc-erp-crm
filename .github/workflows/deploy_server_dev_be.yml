@@ -1,4 +1,4 @@
-name: Deploy Workflow CRM_BE Dev
+name: Deploy CRM_BE Dev
 on:
   push:
     branches:
@@ -8,8 +8,8 @@ on:
     - '.github/workflows/deploy_server_dev_be.yml'
 jobs:
   build:
-    runs-on: self-hosted
-    name: Build Workflow CRM_BE Dev
+    runs-on: dev
+    name: Build CRM_BE Dev
     environment: dev
     steps:
       - name: Checkout
@@ -36,6 +36,8 @@ jobs:
       - name: Backup Log
         run: |
           cp -r /var/www/app_git/crm/backend/App_Data/Logs/* /home/nccsoft/data_git/crm/Logs/
+          rm -rf /var/www/app_git/crm/backend-bk/*
+          cp -rf /var/www/app_git/crm/backend/* /var/www/app_git/crm/backend-bk/
           rm -rf /var/www/app_git/crm/backend/*
 
       - name: Copy New Host
@@ -51,8 +53,8 @@ jobs:
   
   
   deploy:
-    runs-on:  self-hosted
-    name: Deploy Workflow CRM_BE Dev
+    runs-on:  dev
+    name: Deploy CRM_BE Dev
     environment: dev
     needs:
       - build
