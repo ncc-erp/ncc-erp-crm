@@ -1,0 +1,85 @@
+name: Deploy CRM_BE STG
+on:
+  push:
+    branches:
+      - stg
+    paths:
+    - 'aspnet-core/**'
+    - '.github/workflows/deploy_server_stg_be.yml'
+jobs:
+  build:
+    runs-on: stg
+    name: Build CRM_BE STG
+    environment: stg
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build Migrator
+        run: |
+          export PATH=$PATH:/opt/dotnet2/
+          cd aspnet-core/src/CRM.Migrator
+          dotnet2 publish -c Release
+
+      - name: Copy New Migrator
+        run: |
+          cd aspnet-core/src/CRM.Migrator/bin/Release/netcoreapp2.2/publish/
+          rm -rf appsettings.json
+          cp -r . /var/www/migrator_git/crm/backend-migrator/
+
+      - name: Build Host
+        run: |
+          export PATH=$PATH:/opt/dotnet2/
+          cd aspnet-core/src/CRM.Web.Host
+          dotnet2 publish -c Release
+
+      - name: Backup Log
+        run: |
+          cp -r /var/www/app_git/crm/backend/App_Data/Logs/* /home/nccsoft/data_git/crm/Logs/
+          rm -rf /var/www/app_git/crm/backend-bk/*
+          cp -rf /var/www/app_git/crm/backend/* /var/www/app_git/crm/backend-bk/
+          rm -rf /var/www/app_git/crm/backend/*
+
+      - name: Copy New Host
+        run: |
+          cd aspnet-core/src/CRM.Web.Host/bin/Release/netcoreapp2.2/publish/
+          rm -rf appsettings.json
+          rm -rf appsettings.Staging.json
+          cp -r * /var/www/app_git/crm/backend/
+          cd /var/www/app_git/crm/backend/
+          mkdir -p /var/www/app_git/crm/backend/App_Data/Logs/
+          cp -r /home/nccsoft/data_git/crm/Logs/* /var/www/app_git/crm/backend/App_Data/Logs/
+          chmod 777 -R App_Data/Logs/
+  
+  
+  deploy:
+    runs-on:  stg
+    name: Deploy CRM_BE STG
+    environment: stg
+    needs:
+      - build
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+      
+    - name: Update Appsettings
+      run: |
+        cd aspnet-core/
+        echo '${{ secrets.APP_SETTING_STG }}' > appsettings.json    
+        
+    - name: Migrate Database
+      run: |
+        sudo service erp-crm-git stop
+        export PATH=$PATH:/opt/dotnet2/
+        cd aspnet-core/
+        cp appsettings.json /var/www/migrator_git/crm/backend-migrator/
+        cd /var/www/migrator_git/crm/backend-migrator/
+        dotnet2 CRM.Migrator.dll -q
+    
+    - name: Restart Server
+      run: |
+        cd aspnet-core/
+        cp appsettings.json /var/www/app_git/crm/backend/
+        sudo service erp-crm-git start
+        sudo service erp-crm-git status
+    
