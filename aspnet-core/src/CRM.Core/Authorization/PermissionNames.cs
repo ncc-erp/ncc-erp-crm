@@ -19,6 +19,8 @@ namespace CRM.Authorization
         public const string Pages_Customer = "Pages.Customer";
 
         public const string Pages_Invoice = "Pages.Invoice";
+
+        public const string Pages_Only_View_My_Data = "Pages.Only.View.My.Data";
     }
     public class SystemPermission
     {
@@ -39,6 +41,7 @@ namespace CRM.Authorization
             new SystemPermission{ Permission =  PermissionNames.Pages_Customer, MultiTenancySides = MultiTenancySides.Host | MultiTenancySides.Tenant , DisplayName = "Customers", IsConfiguration = true },
             new SystemPermission{ Permission =  PermissionNames.Pages_View_Project, MultiTenancySides = MultiTenancySides.Host | MultiTenancySides.Tenant , DisplayName = "ViewProject", IsConfiguration = true },
             new SystemPermission{ Permission =  PermissionNames.Pages_Invoice, MultiTenancySides = MultiTenancySides.Host | MultiTenancySides.Tenant , DisplayName = "Invoice", IsConfiguration = true },
+            new SystemPermission{ Permission =  PermissionNames.Pages_Only_View_My_Data, MultiTenancySides = MultiTenancySides.Host | MultiTenancySides.Tenant , DisplayName = " Only View My Data", IsConfiguration = true },
         };
     }
 
@@ -57,7 +60,8 @@ namespace CRM.Authorization
                     PermissionNames.Pages_Tenants,
                     PermissionNames.Pages_Users,
                     PermissionNames.Pages_View_Project,
-                    PermissionNames.Pages_Invoice
+                    PermissionNames.Pages_Invoice,
+                    PermissionNames.Pages_Only_View_My_Data
                 }
             },
             {

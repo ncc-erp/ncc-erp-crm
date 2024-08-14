@@ -1,21 +1,20 @@
-﻿using CRM.Clients.Dto;
+﻿using Abp.Authorization;
+using Abp.UI;
+using CRM.APIWorkflowController;
+using CRM.Clients.Dto;
 using CRM.Entities;
-using CRM.IoC;
+using CRM.Extension;
+using CRM.Paging;
+using CRM.Roles;
+using CRM.WorkFlows;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
 using System.Linq;
-using Microsoft.EntityFrameworkCore;
-using Abp.UI;
-using CRM.Paging;
-using CRM.Extension;
-using CRM.WorkFlows;
+using System.Threading.Tasks;
 using static CRM.Enums.StatusEnum;
-using Microsoft.EntityFrameworkCore.Internal;
-using Abp.Authorization;
-using CRM.APIWorkflowController;
 
 namespace CRM.Clients
 {
@@ -23,17 +22,19 @@ namespace CRM.Clients
     {
         private readonly WorkflowAppService _workflowAppService;
         private WorkflowControllerAppService _workflowControllerAppService;
-        public ClientAppService(WorkflowAppService workflowAppService, WorkflowControllerAppService workflowControllerAppService)
+        private readonly IRoleAppService _roleAppService;
+        public ClientAppService(WorkflowAppService workflowAppService, WorkflowControllerAppService workflowControllerAppService, IRoleAppService roleAppService)
         {
             _workflowAppService = workflowAppService;
             _workflowControllerAppService = workflowControllerAppService;
+            _roleAppService = roleAppService;
         }
 
         [HttpPost]
         public async Task<ClientDetailDto> Save(ClientDetailDto input)
         {
             var client = ObjectMapper.Map<Client>(input);
-            if (input.Id>0)
+            if (input.Id > 0)
             {
                 var NameOfEntity = WorkScope.GetAll<EntityAssignment>().Where(s => s.EntityId == input.Id && s.EntityType == EntityDefault.Client);
                 foreach (var i in NameOfEntity)
@@ -176,13 +177,21 @@ namespace CRM.Clients
                 Type = s.Type,
                 Website = s.Website,
                 Status = s.Status,
+                CreatorUserId = s.CreatorUserId,
                 ClientWorkflowTransition = new ClientWorkflowTransitionDto
+
                 {
                     CanChangeToNew = s.Status != ClientStatus.New && workflowTransitions.Any(wt => wt.FromStatus == (int)s.Status && wt.ToStatus == (int)ClientStatus.New && wt.CanChange),
                     CanChangeToRegularContact = s.Status != ClientStatus.RegularContact && workflowTransitions.Any(wt => wt.FromStatus == (int)s.Status && wt.ToStatus == (int)ClientStatus.RegularContact && wt.CanChange),
                     CanChangeToInactiveContact = s.Status != ClientStatus.InactiveContact && workflowTransitions.Any(wt => wt.FromStatus == (int)s.Status && wt.ToStatus == (int)ClientStatus.InactiveContact && wt.CanChange)
                 }
             });
+
+            if (await _roleAppService.UserHasSpecificRole())
+            {
+                clients = clients.Where(c => c.CreatorUserId == AbpSession.UserId);
+            }
+            var u = clients.ToList();
             return await clients.GetGridResult(clients, input);
         }
 
@@ -190,10 +199,10 @@ namespace CRM.Clients
         public async Task<List<RegionDto>> GetDropdownRegion()
         {
             var listRegions = await WorkScope.GetAll<Region>()
-                                .Select(x => new RegionDto 
-                                { 
-                                 RegionId = x.Id, 
-                                 RegionName = x.Name
+                                .Select(x => new RegionDto
+                                {
+                                    RegionId = x.Id,
+                                    RegionName = x.Name
                                 }).OrderBy(x => x.RegionName).ToListAsync();
             return listRegions;
         }

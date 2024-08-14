@@ -1,18 +1,19 @@
 ﻿using Abp.Authorization;
+using Abp.Net.Mail;
 using Abp.UI;
 using CRM.Contacts.Dto;
 using CRM.Entities;
-using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
-using CRM.Paging;
 using CRM.Extension;
-using Abp.Net.Mail;
-using static CRM.Enums.StatusEnum;
-using System.Linq.Dynamic.Core;
+using CRM.Paging;
+using CRM.Roles;
 using CRM.Uitls;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Dynamic.Core;
+using System.Threading.Tasks;
+using static CRM.Enums.StatusEnum;
 
 namespace CRM.Contacts
 {
@@ -20,6 +21,11 @@ namespace CRM.Contacts
     public class ContactAppService : CRMAppServiceBase
     {
         private readonly IEmailSender _emailSender;
+        private readonly IRoleAppService _roleAppService;
+        public ContactAppService(IRoleAppService roleAppService)
+        {
+            _roleAppService = roleAppService;
+        }
         [HttpPost]
         public async Task<SaveContactDto> Save(SaveContactDto input)
         {
@@ -129,8 +135,13 @@ namespace CRM.Contacts
                     Name = s.Name,
                     Description = s.Description,
                     Phone = s.Phone,
-                    Role = s.Role
+                    Role = s.Role,
+                    CreatorUserId = s.CreatorUserId,
                 });
+            if (await _roleAppService.UserHasSpecificRole())
+            {
+                query = query.Where(s => s.CreatorUserId == AbpSession.UserId);
+            }
             return await query.GetGridResult(query, input);
         }
         [HttpGet]

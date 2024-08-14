@@ -1,9 +1,6 @@
 ﻿using Abp.Application.Services.Dto;
 using Abp.AutoMapper;
 using CRM.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 
 namespace CRM.EmailTemplates.Dto
@@ -14,5 +11,6 @@ namespace CRM.EmailTemplates.Dto
         public string Name { get; set; }
         public string Subject { get; set; }
         public string Content { get; set; }
+        public long? CreatorUserId { get; set; }
     }
 }

@@ -1,23 +1,28 @@
-﻿using Abp.Authorization;
+﻿using Abp.Application.Services.Dto;
+using Abp.Authorization;
+using Abp.UI;
 using CRM.CampaignContacts.Dto;
 using CRM.Entities;
-using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
-using Abp.Application.Services.Dto;
-using Abp.UI;
 using CRM.Extension;
 using CRM.Paging;
+using CRM.Roles;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace CRM.CampaignContacts
 {
     [AbpAuthorize]
     public class CampaignContactAppService : CRMAppServiceBase
     {
+        private readonly IRoleAppService _roleAppService;
+        public CampaignContactAppService(IRoleAppService roleAppService)
+        {
+            _roleAppService = roleAppService;
+        }
         [HttpPost]
         public async Task<CreateCampaignContactDto> Save(CreateCampaignContactDto input)
         {
@@ -140,7 +145,7 @@ namespace CRM.CampaignContacts
             {
                 throw new UserFriendlyException(string.Format("Campaign Id = {0} isn't exist", campaignId));
             }
-            var query =  await (WorkScope.GetAll<CampaignContact>().Where(s => s.CampaignId == campaignId).Select(s => new
+            var query = await (WorkScope.GetAll<CampaignContact>().Where(s => s.CampaignId == campaignId).Select(s => new
             {
                 CampaignName = s.Campaign.Name,
                 CampaignId = s.CampaignId,
@@ -197,7 +202,8 @@ namespace CRM.CampaignContacts
                 ContactName = s.Contact.Name,
                 ContactMail = s.Contact.Mail,
                 ContactId = s.ContactId,
-                s.Status
+                s.Status,
+                CreatorUserId = s.CreatorUserId
             })
                 .GroupBy(s => new { s.CampaignId, s.CampaignName })
                 .Select(s => new GetCampaignContactDto
@@ -209,9 +215,14 @@ namespace CRM.CampaignContacts
                         Id = v.ContactId,
                         ContactEmail = v.ContactMail,
                         ContactName = v.ContactName,
-                        Status = v.Status
+                        Status = v.Status,
+                        CreatorUserId = v.CreatorUserId
                     })
                 });
+            if (await _roleAppService.UserHasSpecificRole())
+            {
+                campaignContacts = campaignContacts.Where(c => c.Contacts.Any(contact => contact.CreatorUserId == AbpSession.UserId));
+            }
             return await campaignContacts.GetGridResult(campaignContacts, input);
         }
     }

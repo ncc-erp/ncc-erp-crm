@@ -6,9 +6,9 @@ using CRM.Authorization.Users;
 using CRM.Constant;
 using CRM.Deals.Dto;
 using CRM.Entities;
-using CRM.ExportExcel.Dto;
 using CRM.Extension;
 using CRM.Paging;
+using CRM.Roles;
 using CRM.WorkFlows;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -30,11 +30,13 @@ namespace CRM.Deals
         private IHostingEnvironment _hostingEnvironment;
         private readonly WorkflowAppService _workflowAppService;
         private WorkflowControllerAppService _workflowControllerAppService;
-        public DealAppService(IHostingEnvironment environment, WorkflowAppService workflowAppService, WorkflowControllerAppService workflowControllerAppService)
+        private readonly IRoleAppService _roleAppService;
+        public DealAppService(IHostingEnvironment environment, WorkflowAppService workflowAppService, WorkflowControllerAppService workflowControllerAppService, IRoleAppService roleAppService)
         {
             _hostingEnvironment = environment;
             _workflowAppService = workflowAppService;
             _workflowControllerAppService = workflowControllerAppService;
+            _roleAppService = roleAppService;
         }
         [HttpPost]
         public async Task<long> Save(SaveDealDto input)
@@ -70,9 +72,9 @@ namespace CRM.Deals
                     OwnerId = input.OwnerId,
                     Amount = input.Amount.HasValue ? input.Amount.Value : 0,
                     Description = input.Description,
-                    ContactID=input.ContactId,
+                    ContactID = input.ContactId,
                     Status = input.Status,
-                    Priority=input.Priority,
+                    Priority = input.Priority,
                     LastModificationTime = DateTime.Now,
                     DealStartDate = input.DealStartDate,
                     DealLastFollow = input.DealLastFollow
@@ -106,7 +108,7 @@ namespace CRM.Deals
                 old.ClientId = input.ClientId;
                 old.OwnerId = input.OwnerId;
                 old.Amount = input.Amount.HasValue ? input.Amount.Value : 0;
-                old.ContactID=input.ContactId;
+                old.ContactID = input.ContactId;
                 old.Description = input.Description;
                 old.WinReason = input.WinReason;
                 old.LoseReason = input.LoseReason;
@@ -130,7 +132,7 @@ namespace CRM.Deals
         [HttpPost]
         public async Task<long> QuickSave(SaveDealDto input)
         {
-            
+
             var old = await WorkScope.GetAsync<Deal>(input.Id);
             if (old == null)
             {
@@ -140,7 +142,7 @@ namespace CRM.Deals
             old.Description = input.Description;
             old.Priority = input.Priority;
             _workflowControllerAppService.ChangeStatusDeal(input.Id, input.Status);
-           
+
             //set closing date
             if (input.Status == DealStatus.DealLost || input.Status == DealStatus.ProjectFail || input.Status == DealStatus.ProjectWin)
             {
@@ -198,17 +200,17 @@ namespace CRM.Deals
                              select new DealContact
                              {
                                  dealId = d.Id,
-                                 jointId = s!= null?s.Id:0,
-                                 jointName = s !=null?s.Name:null,
+                                 jointId = s != null ? s.Id : 0,
+                                 jointName = s != null ? s.Name : null,
                              };
             var DealContact = from d in WorkScope.GetAll<Deal>().Where(s => s.Id == id)
                               join c in WorkScope.GetAll<Contact>() on d.ClientId equals c.Id into temped
                               from s in temped.DefaultIfEmpty()
-                              select new 
+                              select new
                               {
                                   dealId = d.Id,
-                                  contactId = s!=null?s.Id:0,
-                                  contactName = s!=null?s.Name:null
+                                  contactId = s != null ? s.Id : 0,
+                                  contactName = s != null ? s.Name : null
                               };
 
             return await (from d in WorkScope.GetAll<Deal>().Where(s => s.Id == id)
@@ -227,14 +229,14 @@ namespace CRM.Deals
                               OwnerName = u.FullName,
                               ClientId = c.jointId,
                               ClientName = c.jointName,
-                              ContactId=e.contactId,
-                              ContactName=e.contactName,
+                              ContactId = e.contactId,
+                              ContactName = e.contactName,
                               Status = d.Status,
                               ClosingDate = d.ClosingDate,
                               WinReason = d.WinReason,
                               LoseReason = d.LoseReason,
-                              CreationTime=d.CreationTime,
-                              Priority=d.Priority,
+                              CreationTime = d.CreationTime,
+                              Priority = d.Priority,
                               Project = t.Count() > 0 ? t.Select(s => new ProjectInDeal
                               {
                                   Id = s.Id,
@@ -267,58 +269,60 @@ namespace CRM.Deals
                 }
             }
 
+
             var workflowTransitions = await _workflowAppService.GetWorkflowTransition((int)EntityDefault.Deal);
             var query = (from d in WorkScope.GetAll<Deal>()
-                        join c in WorkScope.GetAll<Client>() on d.ClientId equals c.Id
-                        join u in WorkScope.GetAll<User>() on d.OwnerId equals u.Id
-                        join p in WorkScope.GetAll<Project>() on d.Id equals p.DealId into t
-                        join ds in WorkScope.GetAll<DealDetail>() on d.Id equals ds.DealId into dsl
-                        select new ViewDealDto
-                        {
-                            Id = d.Id,
-                            Name = d.Name,
-                            Amount = d.Amount,
-                            Description = d.Description,
-                            OwnerId = u.Id,
-                            OwnerName = u.FullName,
-                            ClientId = c.Id,
-                            ClientName = c.Name,
-                            LastModificationTime = d.LastModificationTime,
-                            Status = d.Status,
-                            ClosingDate = d.ClosingDate,
-                            WinReason = d.WinReason,
-                            LoseReason = d.LoseReason,
-                            CreationTime=d.CreationTime,
-                            Priority = d.Priority,
-                            Project = t.Count() > 0 ? t.Select(s => new ProjectInDeal
-                            {
-                                Id = s.Id,
-                                Code = s.Code,
-                                Name = s.Name,
-                                Status = s.Status
-                            }).FirstOrDefault() : null,
-                            ChangeFromInProgressToWin = d.Status == DealStatus.ProjectInProgress
-                                                          && workflowTransitions.Any(wt => wt.FromStatus == (int)d.Status && wt.ToStatus == (int)DealStatus.ProjectWin && wt.CanChange),
-                            ChangeFromInProgressToFail = d.Status == DealStatus.ProjectInProgress
-                                                          && workflowTransitions.Any(wt => wt.FromStatus == (int)d.Status && wt.ToStatus == (int)DealStatus.ProjectFail && wt.CanChange),
-                            ChangeFromProcessingToLost = d.Status == DealStatus.ProcessingRequest
-                                                          && workflowTransitions.Any(wt => wt.FromStatus == (int)d.Status && wt.ToStatus == (int)DealStatus.DealLost && wt.CanChange),
-                            ChangeFromProcessingToInProgress = d.Status == DealStatus.ProcessingRequest
-                                                          && workflowTransitions.Any(wt => wt.FromStatus == (int)d.Status && wt.ToStatus == (int)DealStatus.ProjectInProgress && wt.CanChange),
-                            ChangeToProcessing = true,
-                            DealLastFollow = d.DealLastFollow,
-                            DealStartDate = d.DealStartDate,
-                            DealDetails = dsl.Any() ?
-                                           dsl.Select(s => new DealDetailDto
-                                           {
-                                               LevelId = s.LevelId,
-                                               LevelName = s.Level.Name,
-                                               SkillId = s.SkillId,
-                                               SkillName = s.Skill.Name,
-                                               Quantity = s.Quantity,
-                                           }).ToList()
-                                        : null,
-                        })
+                         join c in WorkScope.GetAll<Client>() on d.ClientId equals c.Id
+                         join u in WorkScope.GetAll<User>() on d.OwnerId equals u.Id
+                         join p in WorkScope.GetAll<Project>() on d.Id equals p.DealId into t
+                         join ds in WorkScope.GetAll<DealDetail>() on d.Id equals ds.DealId into dsl
+                         select new ViewDealDto
+                         {
+                             Id = d.Id,
+                             Name = d.Name,
+                             Amount = d.Amount,
+                             Description = d.Description,
+                             OwnerId = u.Id,
+                             OwnerName = u.FullName,
+                             ClientId = c.Id,
+                             ClientName = c.Name,
+                             LastModificationTime = d.LastModificationTime,
+                             Status = d.Status,
+                             ClosingDate = d.ClosingDate,
+                             WinReason = d.WinReason,
+                             LoseReason = d.LoseReason,
+                             CreationTime = d.CreationTime,
+                             Priority = d.Priority,
+                             CreatorUserId = d.CreatorUserId,
+                             Project = t.Count() > 0 ? t.Select(s => new ProjectInDeal
+                             {
+                                 Id = s.Id,
+                                 Code = s.Code,
+                                 Name = s.Name,
+                                 Status = s.Status
+                             }).FirstOrDefault() : null,
+                             ChangeFromInProgressToWin = d.Status == DealStatus.ProjectInProgress
+                                                           && workflowTransitions.Any(wt => wt.FromStatus == (int)d.Status && wt.ToStatus == (int)DealStatus.ProjectWin && wt.CanChange),
+                             ChangeFromInProgressToFail = d.Status == DealStatus.ProjectInProgress
+                                                           && workflowTransitions.Any(wt => wt.FromStatus == (int)d.Status && wt.ToStatus == (int)DealStatus.ProjectFail && wt.CanChange),
+                             ChangeFromProcessingToLost = d.Status == DealStatus.ProcessingRequest
+                                                           && workflowTransitions.Any(wt => wt.FromStatus == (int)d.Status && wt.ToStatus == (int)DealStatus.DealLost && wt.CanChange),
+                             ChangeFromProcessingToInProgress = d.Status == DealStatus.ProcessingRequest
+                                                           && workflowTransitions.Any(wt => wt.FromStatus == (int)d.Status && wt.ToStatus == (int)DealStatus.ProjectInProgress && wt.CanChange),
+                             ChangeToProcessing = true,
+                             DealLastFollow = d.DealLastFollow,
+                             DealStartDate = d.DealStartDate,
+                             DealDetails = dsl.Any() ?
+                                            dsl.Select(s => new DealDetailDto
+                                            {
+                                                LevelId = s.LevelId,
+                                                LevelName = s.Level.Name,
+                                                SkillId = s.SkillId,
+                                                SkillName = s.Skill.Name,
+                                                Quantity = s.Quantity,
+                                            }).ToList()
+                                         : null,
+                         })
                         .WhereIf(input.StartDate.HasValue, s => s.DealStartDate >= input.StartDate)
                         .WhereIf(input.EndDate.HasValue, s => s.DealStartDate <= input.EndDate)
                         .OrderByDescending(s => s.LastModificationTime).ThenByDescending(s => s.CreationTime).AsQueryable();
@@ -348,7 +352,12 @@ namespace CRM.Deals
                 }
             }
 
-            return  query.GetGridResultSync(query, input.Param);
+            if (await _roleAppService.UserHasSpecificRole())
+            {
+                query = query.Where(d => d.CreatorUserId == AbpSession.UserId);
+            }
+
+            return query.GetGridResultSync(query, input.Param);
         }
         public async Task<IActionResult> ExportDealToExcel()
         {
@@ -356,7 +365,7 @@ namespace CRM.Deals
                        join c in WorkScope.GetAll<Client>() on d.ClientId equals c.Id
                        join u in WorkScope.GetAll<User>() on d.OwnerId equals u.Id
                        join p in WorkScope.GetAll<Project>() on d.Id equals p.DealId into t
-                       select new 
+                       select new
                        {
                            Id = d.Id,
                            Name = d.Name,
@@ -367,12 +376,12 @@ namespace CRM.Deals
                            ClientId = c.Id,
                            ClientName = c.Name,
                            Status = d.Status.ToString(),
-                           ClosingDate = d.ClosingDate.HasValue?d.ClosingDate.Value.ToString("dd/MM/yyyy"):"",
+                           ClosingDate = d.ClosingDate.HasValue ? d.ClosingDate.Value.ToString("dd/MM/yyyy") : "",
                            WinReason = d.WinReason,
                            LoseReason = d.LoseReason,
                            CreationTime = d.CreationTime.ToString("dd/MM/yyyy"),
                            Priority = d.Priority.ToString(),
-                           Project = t.Count() > 0 ? t.Select(s => new 
+                           Project = t.Count() > 0 ? t.Select(s => new
                            {
                                Id = s.Id,
                                Code = s.Code,
@@ -382,22 +391,22 @@ namespace CRM.Deals
 
                        };
             string sWebRootFolder = _hostingEnvironment.WebRootPath;
-            
+
             string sFileName = @"Deal.xlsx";
-            
+
             string URL = string.Format("{0}/{1}", VariableConstant.ServerRootAddress, sFileName);
-            
+
             FileInfo file = new FileInfo(Path.Combine(sWebRootFolder, sFileName));
-            
+
             var memory = new MemoryStream();
-            
+
             using (var fs = new FileStream(Path.Combine(sWebRootFolder, sFileName), FileMode.Create, FileAccess.Write))
             {
                 IWorkbook workbook;
                 workbook = new XSSFWorkbook();
-                
+
                 ISheet excelSheet = workbook.CreateSheet("Deal");
-                
+
                 IRow row = excelSheet.CreateRow(0);
                 row.CreateCell(0).SetCellValue("Stt");
                 row.CreateCell(1).SetCellValue("Tên Deal");
@@ -414,7 +423,7 @@ namespace CRM.Deals
                 row.CreateCell(12).SetCellValue("Status của Project");
                 //
                 var k = 0;
-                foreach(var i in Data)
+                foreach (var i in Data)
                 {
                     k++;
                     row = excelSheet.CreateRow(k);
@@ -435,13 +444,13 @@ namespace CRM.Deals
                 workbook.Write(fs);
             }
             using (var stream = new FileStream(Path.Combine(sWebRootFolder, sFileName), FileMode.Open))
-                
+
             {
-                
+
                 await stream.CopyToAsync(memory);
-                
+
             }
-            
+
             memory.Position = 0;
 
             /* return File.(memory, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", sFileName);*/
@@ -562,7 +571,7 @@ namespace CRM.Deals
         public async Task<IActionResult> UpdateDealLastFollow(UpdateDealLastFollowDto input)
         {
             var dealItem = await WorkScope.GetAll<Deal>().FirstOrDefaultAsync(x => x.Id == input.DealId);
-            if(dealItem != null)
+            if (dealItem != null)
             {
                 dealItem.DealLastFollow = input.DealLastFollow;
                 await WorkScope.UpdateAsync<Deal>(dealItem);
@@ -599,9 +608,9 @@ namespace CRM.Deals
                 foreach (var item in dealDetails)
                 {
                     var dealDetailItem = oldDealDetails.FirstOrDefault(x => x.LevelId == item.LevelId && x.SkillId == item.SkillId);
-                    if(dealDetailItem != null)
+                    if (dealDetailItem != null)
                     {
-                        if(dealDetailItem.Quantity != item.Quantity)
+                        if (dealDetailItem.Quantity != item.Quantity)
                         {
                             dealDetailItem.Quantity = item.Quantity;
                             await WorkScope.UpdateAsync<DealDetail>(dealDetailItem);
@@ -623,7 +632,7 @@ namespace CRM.Deals
                     }
                 }
             }
-            if(oldDealDetails != null)
+            if (oldDealDetails != null)
             {
                 await DeleteListDealDetail(oldDealDetails);
             }

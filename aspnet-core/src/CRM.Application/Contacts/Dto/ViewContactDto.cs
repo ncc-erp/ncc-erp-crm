@@ -1,7 +1,5 @@
 ﻿using Abp.Application.Services.Dto;
-using System;
 using System.Collections.Generic;
-using System.Text;
 using static CRM.Enums.StatusEnum;
 
 namespace CRM.Contacts.Dto
@@ -14,6 +12,7 @@ namespace CRM.Contacts.Dto
         public string Role { get; set; }
         public string Description { get; set; }
         public List<ClientInContact> Clients { get; set; }
+        public long? CreatorUserId { get; set; }
     }
     public class ClientInContact : EntityDto<long>
     {

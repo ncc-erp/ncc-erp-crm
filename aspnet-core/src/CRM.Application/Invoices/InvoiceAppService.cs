@@ -6,6 +6,7 @@ using CRM.Authorization.Users;
 using CRM.Configuration;
 using CRM.Entities;
 using CRM.Invoices.Dto;
+using CRM.Roles;
 using CRM.WorkFlows;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -24,11 +25,13 @@ namespace CRM.Invoices
         private readonly WorkflowAppService _workflowAppService;
         private IHostingEnvironment _hostingEnvironment;
         private WorkflowControllerAppService _workflowControllerAppService;
-        public InvoiceAppService(WorkflowAppService workflowAppService, IHostingEnvironment environment, WorkflowControllerAppService workflowControllerAppService)
+        private readonly IRoleAppService _roleAppService;
+        public InvoiceAppService(WorkflowAppService workflowAppService, IHostingEnvironment environment, WorkflowControllerAppService workflowControllerAppService, IRoleAppService roleAppService)
         {
             _workflowAppService = workflowAppService;
             _hostingEnvironment = environment;
             _workflowControllerAppService = workflowControllerAppService;
+            _roleAppService = roleAppService;
         }
         public async Task<object> GetUserForInvoiceUser()
         {
@@ -175,6 +178,7 @@ namespace CRM.Invoices
                                 Status = i.Status,
                                 Time = i.InvoiceDate,
                                 Type = i.Type,
+                                CreatorUserId = i.CreatorUserId,
                                 TypeName = ((Enums.StatusEnum.ProjectTypeList)i.Type).ToString(),
                                 ChangeFromPaidToChasing = i.Status == Enums.StatusEnum.InvoiceStatus.Paid
                                                           && workflowTransitions.Any(wt => wt.FromStatus == (int)i.Status && wt.ToStatus == (int)Enums.StatusEnum.InvoiceStatus.Chasing && wt.CanChange),
@@ -195,6 +199,11 @@ namespace CRM.Invoices
                             .WhereIf(input.Status.HasValue, x => x.Status == input.Status)
                             .WhereIf(input.Type.HasValue, x => x.Type == input.Type)
                             .ToList();
+
+            if (await _roleAppService.UserHasSpecificRole())
+            {
+                invoices = invoices.Where(s => s.CreatorUserId == AbpSession.UserId).ToList();
+            }
             return invoices;
         }
 
@@ -208,10 +217,10 @@ namespace CRM.Invoices
                 {
                     throw new UserFriendlyException("Không tìm thấy Invoice");
                 }
-                if(currentInvoice.Name != input.InvoiceName)
+                if (currentInvoice.Name != input.InvoiceName)
                 {
                     var NameOfEntity = WorkScope.GetAll<EntityAssignment>().Where(s => s.EntityId == input.Id && s.EntityType == EntityDefault.Invoice);
-                    foreach(var i in NameOfEntity)
+                    foreach (var i in NameOfEntity)
                     {
                         i.NameOfEntity = input.InvoiceName;
                     }
@@ -239,7 +248,7 @@ namespace CRM.Invoices
                 _workflowControllerAppService.ChangeStatusInvoice(input.Id, input.Status);
                 await CurrentUnitOfWork.SaveChangesAsync();
                 var invoice = await GetInvoiceDetail(input.Id);
-                
+
                 return invoice;
             }
             else
@@ -286,7 +295,7 @@ namespace CRM.Invoices
             await CurrentUnitOfWork.SaveChangesAsync();
         }
         [HttpPost]
-        public async Task<ViewInvoiceFileDto> AddFile([FromForm]SaveInvoiceFileDto input)
+        public async Task<ViewInvoiceFileDto> AddFile([FromForm] SaveInvoiceFileDto input)
         {
             var existInvoice = await WorkScope.GetAll<Invoice>().AnyAsync(s => s.Id == input.InvoiceId);
             if (!existInvoice)
