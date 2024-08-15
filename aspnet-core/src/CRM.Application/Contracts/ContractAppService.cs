@@ -1,20 +1,18 @@
 ﻿using Abp.UI;
 using CRM.Contracts.Dto;
 using CRM.Entities;
+using CRM.Enums;
+using CRM.Extension;
 using CRM.Paging;
+using CRM.Roles;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using System.Linq;
-using CRM.Extension;
-using Microsoft.EntityFrameworkCore;
-using CRM.ContractMileStones.Dto;
-using CRM.Enums;
-using CRM.Authorization.Users;
 using System.IO;
-using Microsoft.AspNetCore.Hosting;
+using System.Linq;
+using System.Threading.Tasks;
 using static CRM.Enums.StatusEnum;
 
 namespace CRM.Contracts
@@ -22,9 +20,11 @@ namespace CRM.Contracts
     public class ContractAppService : CRMAppServiceBase
     {
         private IHostingEnvironment _hostingEnvironment;
-        public ContractAppService(IHostingEnvironment environment)
+        private readonly IRoleAppService _roleAppService;
+        public ContractAppService(IHostingEnvironment environment, IRoleAppService roleAppService)
         {
             _hostingEnvironment = environment;
+            _roleAppService = roleAppService;
         }
         [HttpPost]
         public async Task<SaveContractDto> Save(SaveContractDto input)
@@ -160,7 +160,7 @@ namespace CRM.Contracts
                         await CurrentUnitOfWork.SaveChangesAsync();
                         invoiceCount++;
                         await WorkScope.InsertAsync<Invoice>(new Invoice
-                        { 
+                        {
                             Assignee = AbpSession.UserId.Value,
                             ContractId = input.Id,
                             InvoiceDate = add.MileStoneDate.Value,
@@ -291,7 +291,7 @@ namespace CRM.Contracts
             if (count > 0)
             {
                 throw new UserFriendlyException(String.Format("Contract {0} has Invoice data!!!", old.Name));
-            }           
+            }
             if (old != null)
             {
                 await WorkScope.DeleteAsync<Contract>(id);
@@ -381,8 +381,13 @@ namespace CRM.Contracts
                                 EndTime = c.EndTime,
                                 Status = c.Status,
                                 Type = c.Type,
-                                ContractValue = c.ContractValue
+                                ContractValue = c.ContractValue,
+                                CreatorUserId = c.CreatorUserId,
                             };
+            if (await _roleAppService.UserHasSpecificRole())
+            {
+                contracts = contracts.Where(d => d.CreatorUserId == AbpSession.UserId);
+            }
             return await contracts.GetGridResult(contracts, input);
         }
         [HttpPost]
@@ -415,7 +420,7 @@ namespace CRM.Contracts
                     return new ViewContractFileDto
                     {
                         Id = input.Id,
-                        FileUrl = $"contract_file/{ fileUrl }"
+                        FileUrl = $"contract_file/{fileUrl}"
                     };
                 }
                 else
@@ -451,7 +456,7 @@ namespace CRM.Contracts
                 .Select(s => new ViewContractFileDto
                 {
                     Id = s.Id,
-                    FileUrl = $"contract_file/{ s.FileUrl }"
+                    FileUrl = $"contract_file/{s.FileUrl}"
                 }).ToListAsync();
         }
     }
