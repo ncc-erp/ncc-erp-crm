@@ -8,6 +8,7 @@ using CRM.BackgroundWorker;
 using CRM.Contacts.Dto;
 using CRM.EmailTemplates.Dto;
 using CRM.Entities;
+using CRM.Roles;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -22,10 +23,12 @@ namespace CRM.EmailTemplates
     {
         private readonly BackgroundJobManager _backgroundJobManager;
         private readonly IEmailSender _emailSender;
-        public EmailTemplateAppService(IEmailSender emailSender, BackgroundJobManager backgroundJobManager)
+        private readonly IRoleAppService _roleAppService;
+        public EmailTemplateAppService(IEmailSender emailSender, BackgroundJobManager backgroundJobManager, IRoleAppService roleAppService)
         {
             _emailSender = emailSender;
             _backgroundJobManager = backgroundJobManager;
+            _roleAppService = roleAppService;
         }
         [HttpPost]
         public async Task<EmailTemplateDto> Save(EmailTemplateDto input)
@@ -56,8 +59,13 @@ namespace CRM.EmailTemplates
         [HttpGet]
         public async Task<List<EmailTemplateDto>> GetAll()
         {
-            return await WorkScope.GetAll<EmailTemplate>()
-                .Select(s => new EmailTemplateDto { Id = s.Id, Subject = s.Subject, Content = s.Content, Name = s.Name }).ToListAsync();
+            var query = await WorkScope.GetAll<EmailTemplate>()
+                .Select(s => new EmailTemplateDto { Id = s.Id, Subject = s.Subject, Content = s.Content, Name = s.Name, CreatorUserId = s.CreatorUserId }).ToListAsync();
+            if (await _roleAppService.UserHasSpecificRole())
+            {
+                query = query.Where(s => s.CreatorUserId == AbpSession.UserId).ToList();
+            }
+            return query;
         }
         [HttpGet]
         public async Task<EmailTemplateDto> Get(long Id)

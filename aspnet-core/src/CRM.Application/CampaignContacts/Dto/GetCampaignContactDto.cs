@@ -1,8 +1,5 @@
 ﻿using Abp.Application.Services.Dto;
-using CRM.EmailTemplates.Dto;
-using System;
 using System.Collections.Generic;
-using System.Text;
 using static CRM.Enums.StatusEnum;
 
 namespace CRM.CampaignContacts.Dto
@@ -19,6 +16,7 @@ namespace CRM.CampaignContacts.Dto
         public string ContactEmail { get; set; }
         public string ContactName { get; set; }
         public CampaignContactStatus Status { get; set; }
+        public long? CreatorUserId { get; set; }
     }
     public class GetEmailTemplateDto
     {

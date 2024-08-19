@@ -1,10 +1,7 @@
 ﻿using Abp.Application.Services.Dto;
 using Abp.AutoMapper;
-using AutoMapper;
 using CRM.Entities;
-using System;
 using System.Collections.Generic;
-using System.Text;
 using static CRM.Enums.StatusEnum;
 
 namespace CRM.Clients.Dto
@@ -24,6 +21,7 @@ namespace CRM.Clients.Dto
         public ClientWorkflowTransitionDto ClientWorkflowTransition { get; set; }
         public List<ProjectClientDto> Projects { get; set; }
         public List<DealClientDto> Deals { get; set; }
+        public long? CreatorUserId { get; set; }
     }
 
     public class ClientDto : EntityDto<long>

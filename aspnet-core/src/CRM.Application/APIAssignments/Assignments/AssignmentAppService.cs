@@ -1,27 +1,36 @@
-﻿using Abp.UI;
+﻿using Abp.Application.Services.Dto;
+using Abp.Authorization;
+using Abp.Collections.Extensions;
+using Abp.Extensions;
+using Abp.UI;
 using CRM.APIAssignments.Assignments.Dto;
+using CRM.Authorization.Users;
 using CRM.Entities;
 using CRM.Extension;
+using CRM.Paging;
+using CRM.Roles;
+using CRM.Uitls;
+using CRM.Users;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using static CRM.Enums.StatusEnum;
-using System.Linq;
-using CRM.Paging;
-using CRM.Authorization.Users;
-using Abp.Application.Services.Dto;
-using Abp.Collections.Extensions;
-using Abp.Extensions;
-using Abp.Authorization;
-using CRM.Uitls;
 
 namespace CRM.APIAssignments.Assignments
 {
     [AbpAuthorize]
     public class AssignmentAppService : CRMAppServiceBase
     {
+        private readonly IRoleAppService _roleAppService;
+        private readonly IUserAppService _userAppService;
+        public AssignmentAppService(IRoleAppService roleAppService, IUserAppService userAppService)
+        {
+            _roleAppService = roleAppService;
+            _userAppService = userAppService;
+        }
         [HttpPost]
         public async Task<CreateAssignmentDto> Save(CreateAssignmentDto input)
         {
@@ -38,7 +47,7 @@ namespace CRM.APIAssignments.Assignments
                 };
                 long assignmentId = await WorkScope.InsertAndGetIdAsync<Assignment>(assignment);
                 input.Id = assignmentId;
-                string nameOfEntity="";
+                string nameOfEntity = "";
                 foreach (var u in input.EntityAssignmentDtos)
                 {
                     switch (u.EntityType)
@@ -79,7 +88,7 @@ namespace CRM.APIAssignments.Assignments
                             nameOfEntity = (await WorkScope.GetAsync<Project>(u.EntityId)).Name;
                             break;
                         case EntityDefault.Contact:
-                            if(!await WorkScope.GetAll<Project>().AnyAsync(s => s.Id == u.EntityId))
+                            if (!await WorkScope.GetAll<Project>().AnyAsync(s => s.Id == u.EntityId))
                             {
                                 throw new UserFriendlyException(String.Format($"Contact Id {u.EntityId} isn't exist"));
                             }
@@ -92,7 +101,7 @@ namespace CRM.APIAssignments.Assignments
                         EntityId = u.EntityId,
                         EntityType = u.EntityType,
                         EntityName = Enum.GetName(u.EntityType.GetType(), u.EntityType),
-                        NameOfEntity= nameOfEntity
+                        NameOfEntity = nameOfEntity
 
                     };
                     await WorkScope.InsertAsync<EntityAssignment>(ena);
@@ -169,6 +178,7 @@ namespace CRM.APIAssignments.Assignments
         [HttpPost]
         public async Task<GridResult<GetAssignmentDto>> GetAllPaging(GetAllAssignmentInputDto input)
         {
+
             if (input.StartDate.HasValue && input.EndDate.HasValue)
             {
                 if (input.StartDate.Value > input.EndDate.Value)
@@ -204,9 +214,14 @@ namespace CRM.APIAssignments.Assignments
                              EntityName = e.NameOfEntity,
                              CreatorUserName = $"{ua.User2.Surname} {ua.User2.Name}",
                              FullName = $"{ua.User.Surname} {ua.User.Name}"
-                         }).WhereIf(!input.SearchUser.IsNullOrWhiteSpace(), s => s.FullName.Contains(input.SearchUser, StringComparison.OrdinalIgnoreCase))
-                       .WhereIf(!input.SearchEntity.IsNullOrWhiteSpace(), s => s.EntityName.Contains(input.SearchEntity, StringComparison.OrdinalIgnoreCase))
-                       .AsQueryable();
+                         }).AsQueryable();
+
+            if (await _roleAppService.UserHasSpecificRole())
+            {
+                query = query.Where(s => s.UserId == AbpSession.UserId);
+            }
+            query = query.WhereIf(!input.SearchUser.IsNullOrWhiteSpace(), s => s.FullName.Contains(input.SearchUser, StringComparison.OrdinalIgnoreCase))
+                       .WhereIf(!input.SearchEntity.IsNullOrWhiteSpace(), s => s.EntityName.Contains(input.SearchEntity, StringComparison.OrdinalIgnoreCase)).AsQueryable();
             /*foreach (var a in query)
             {
                 if (a.CreatorUserId.HasValue)
@@ -237,7 +252,9 @@ namespace CRM.APIAssignments.Assignments
             // var query2 = query.AsQueryable().GetGridResultSync(query.AsQueryable(), input.gridParam);
             /*var result = query.WhereIf(!input.SearchUser.IsNullOrWhiteSpace(), s => s.FullName.Contains(input.SearchUser, StringComparison.OrdinalIgnoreCase))
                         .WhereIf(!input.SearchEntity.IsNullOrWhiteSpace(), s => s.EntityName.Contains(input.SearchEntity, StringComparison.OrdinalIgnoreCase));*/
+
             return query.GetGridResultSync(query, input.Param);
+
         }
 
         [HttpGet]
@@ -260,14 +277,14 @@ namespace CRM.APIAssignments.Assignments
             return result;
         }
         [HttpGet]
-        public async Task<GetAssignmentDetailDto>GetAssignmentById(long id)
+        public async Task<GetAssignmentDetailDto> GetAssignmentById(long id)
         {
             var item = WorkScope.Get<Assignment>(id);
             var itemEntityInfor = WorkScope.GetAll<EntityAssignment>()
                 .Where(x => x.AssignmentId == item.Id)
-                .Select(x => new { x.EntityType, x.EntityName, x.EntityId ,x.NameOfEntity})
+                .Select(x => new { x.EntityType, x.EntityName, x.EntityId, x.NameOfEntity })
                 .First();
-            var userAssignmentId = WorkScope.GetAll<UserAssignment>().Where(x=>x.AssignmentId ==item.Id).FirstOrDefault();
+            var userAssignmentId = WorkScope.GetAll<UserAssignment>().Where(x => x.AssignmentId == item.Id).FirstOrDefault();
             var itemUserInfor = WorkScope.Get<User>(userAssignmentId.UserId);
 
             return new GetAssignmentDetailDto
@@ -378,8 +395,8 @@ namespace CRM.APIAssignments.Assignments
         public async System.Threading.Tasks.Task Delete(EntityDto<long> input)
         {
             var hasAssignment = await WorkScope.GetAll<Assignment>().AnyAsync(s => s.Id == input.Id);
-            var hasUserAssignment =  WorkScope.GetAll<UserAssignment>().Where(s => s.AssignmentId == input.Id);
-            var hasEntityAssignment =  WorkScope.GetAll<EntityAssignment>().Where(s => s.AssignmentId == input.Id);
+            var hasUserAssignment = WorkScope.GetAll<UserAssignment>().Where(s => s.AssignmentId == input.Id);
+            var hasEntityAssignment = WorkScope.GetAll<EntityAssignment>().Where(s => s.AssignmentId == input.Id);
 
             if (!hasAssignment)
             {
@@ -393,7 +410,7 @@ namespace CRM.APIAssignments.Assignments
              {
                  throw new UserFriendlyException(string.Format("This assignment in entity assignment, you can't delete it"));
              }*/
-            foreach(var i in hasUserAssignment)
+            foreach (var i in hasUserAssignment)
             {
                 await WorkScope.DeleteAsync(i);
             }

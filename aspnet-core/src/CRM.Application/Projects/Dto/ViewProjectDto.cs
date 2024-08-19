@@ -1,7 +1,6 @@
 ﻿using Abp.Application.Services.Dto;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using static CRM.Enums.StatusEnum;
 
 namespace CRM.Projects.Dto
@@ -13,12 +12,14 @@ namespace CRM.Projects.Dto
         public long ClientId { get; set; }
         public string ClientName { get; set; }
         public ProjectStatus Status { get; set; }
+
+        public long? CreatorUserId { get; set; }
     }
 
     public class ProjectDetailDto
     {
         public long Id { get; set; }
-        public  long ClientId { get; set; }
+        public long ClientId { get; set; }
         public string ProjectCode { get; set; }
         public string ProjectName { get; set; }
         public ProjectType ProjectType { get; set; }

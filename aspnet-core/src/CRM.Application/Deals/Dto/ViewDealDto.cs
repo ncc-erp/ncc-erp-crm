@@ -1,7 +1,6 @@
 ﻿using Abp.Application.Services.Dto;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using static CRM.Enums.StatusEnum;
 
 namespace CRM.Deals.Dto
@@ -30,9 +29,10 @@ namespace CRM.Deals.Dto
         public bool ChangeToProcessing { get; set; }
         public DateTime? CreationTime { get; set; }
         public Priority? Priority { get; set; }
-        public List<DealDetailDto> DealDetails { get; set;}
+        public List<DealDetailDto> DealDetails { get; set; }
         public DateTime? DealStartDate { get; set; }
         public DateTime? DealLastFollow { get; set; }
+        public long? CreatorUserId { get; set; }
     }
     public class ProjectInDeal : EntityDto<long>
     {

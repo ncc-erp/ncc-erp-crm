@@ -1,7 +1,6 @@
 ﻿using Abp.Application.Services.Dto;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using static CRM.Enums.StatusEnum;
 
 namespace CRM.Contracts.Dto
@@ -19,5 +18,7 @@ namespace CRM.Contracts.Dto
         public ContractStatus Status { get; set; }
         public float ContractValue { get; set; }
         public List<MileStoneDto> MileStones { get; set; }
+
+        public long? CreatorUserId { get; set; }
     }
 }

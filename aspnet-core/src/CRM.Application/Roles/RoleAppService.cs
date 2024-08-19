@@ -1,19 +1,23 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Abp.Application.Services;
+﻿using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using Abp.Authorization;
+using Abp.Authorization.Users;
 using Abp.Domain.Repositories;
+using Abp.Domain.Uow;
 using Abp.Extensions;
 using Abp.IdentityFramework;
 using Abp.Linq.Extensions;
+using Abp.Runtime.Session;
 using CRM.Authorization;
 using CRM.Authorization.Roles;
 using CRM.Authorization.Users;
+using CRM.IoC;
 using CRM.Roles.Dto;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace CRM.Roles
 {
@@ -22,12 +26,14 @@ namespace CRM.Roles
     {
         private readonly RoleManager _roleManager;
         private readonly UserManager _userManager;
+        private readonly IWorkScope _workScope;
 
-        public RoleAppService(IRepository<Role> repository, RoleManager roleManager, UserManager userManager)
+        public RoleAppService(IRepository<Role> repository, RoleManager roleManager, UserManager userManager, WorkScope workScope)
             : base(repository)
         {
             _roleManager = roleManager;
             _userManager = userManager;
+            _workScope = workScope;
         }
 
         public override async Task<RoleDto> Create(CreateRoleDto input)
@@ -61,7 +67,6 @@ namespace CRM.Roles
 
             return new ListResultDto<RoleListDto>(ObjectMapper.Map<List<RoleListDto>>(roles));
         }
-
         public override async Task<RoleDto> Update(RoleDto input)
         {
             CheckUpdatePermission();
@@ -101,9 +106,10 @@ namespace CRM.Roles
         {
             var permissions = PermissionManager.GetAllPermissions();
 
-            return Task.FromResult(new ListResultDto<PermissionDto>(
+            var a = Task.FromResult(new ListResultDto<PermissionDto>(
                 ObjectMapper.Map<List<PermissionDto>>(permissions).OrderBy(p => p.DisplayName).ToList()
             ));
+            return a;
         }
 
         protected override IQueryable<Role> CreateFilteredQuery(PagedRoleResultRequestDto input)
@@ -143,6 +149,52 @@ namespace CRM.Roles
                 GrantedPermissionNames = grantedPermissions.Select(p => p.Name).ToList()
             };
         }
+        [AbpAllowAnonymous]
+        public async Task<ListResultDto<RoleListDto>> GetRolesByPermissionName()
+        {
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            {
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MustHaveTenant))
+                {
+                    var roles = await _roleManager
+                        .Roles
+                        .Where(r => r.Permissions.Any(rp => rp.Name == "Pages.Only.View.My.Data" && rp.IsGranted))
+                        .ToListAsync();
+                    return new ListResultDto<RoleListDto>(ObjectMapper.Map<List<RoleListDto>>(roles));
+                }
+            }
+        }
+        [AbpAllowAnonymous]
+        public async Task<bool> UserHasSpecificRole()
+        {
+            var user = await _userManager.FindByIdAsync(AbpSession.GetUserId().ToString());
+            List<UserRole> userRoleList = null;
+
+            using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MayHaveTenant))
+            {
+                using (CurrentUnitOfWork.DisableFilter(AbpDataFilters.MustHaveTenant))
+                {
+                    userRoleList = await _workScope.GetAll<UserRole>()
+                                        .Where(ur => ur.UserId == user.Id)
+                                        .ToListAsync();
+                }
+            }
+
+            var rolePermission = await GetRolesByPermissionName();
+            foreach (var userRole in userRoleList)
+            {
+                foreach (var permissionRole in rolePermission.Items)
+                {
+                    if (userRole.RoleId == permissionRole.Id)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
     }
 }
 

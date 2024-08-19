@@ -1,10 +1,7 @@
 ﻿using Abp.Application.Services.Dto;
 using Abp.AutoMapper;
 using CRM.Entities;
-using Microsoft.AspNetCore.Http;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using static CRM.Enums.StatusEnum;
 
 namespace CRM.Invoices.Dto
@@ -31,6 +28,7 @@ namespace CRM.Invoices.Dto
         public bool ChangeFromChasingToPending { get; set; }
         public bool ChangeFromChasingToFail { get; set; }
         public bool ChangeFromChasingToPaid { get; set; }
+        public long? CreatorUserId { get; set; }
     }
     public class InvoiceInput
     {
@@ -42,7 +40,7 @@ namespace CRM.Invoices.Dto
         public long? Assigne { get; set; }
     }
 
-    public class InvoiceStatusInput: EntityDto<long>
+    public class InvoiceStatusInput : EntityDto<long>
     {
         public InvoiceStatus Status { get; set; }
     }

@@ -1,7 +1,7 @@
-﻿using System.Threading.Tasks;
-using Abp.Application.Services;
+﻿using Abp.Application.Services;
 using Abp.Application.Services.Dto;
 using CRM.Roles.Dto;
+using System.Threading.Tasks;
 
 namespace CRM.Roles
 {
@@ -12,5 +12,9 @@ namespace CRM.Roles
         Task<GetRoleForEditOutput> GetRoleForEdit(EntityDto input);
 
         Task<ListResultDto<RoleListDto>> GetRolesAsync(GetRolesInput input);
+
+        Task<ListResultDto<RoleListDto>> GetRolesByPermissionName();
+
+        Task<bool> UserHasSpecificRole();
     }
 }
