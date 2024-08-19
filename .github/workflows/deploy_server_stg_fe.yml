@@ -1,0 +1,77 @@
+name: Deploy CRM-FE STG
+on:
+  push:
+    branches:
+      - stg
+    paths:
+      - 'vue/**'
+      - '.github/workflows/deploy_server_stg_fe.yml'
+jobs:
+  build:
+    runs-on:  stg
+    name: Build CRM_FE Stg
+    environment: stg
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Cache Node Module
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-node-modules
+      with:
+        path: |
+          **/node_modules
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package.json,**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
+    
+    - name: npm install
+      if: steps.cache-nodemodules.outputs.cache-hit != 'true'
+      run: |
+        cd vue/
+        export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+        nvm use 14.17.0
+        node -v
+        echo "=== INSTALL PACKAGE ==="
+        npm install
+
+    - name: VueBuild
+      run: |
+        cd vue/
+        export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+        nvm use 14.17.0
+        node -v
+        npm run build --prod
+        
+    - name: Backup - Copy VueBuild
+      run: |
+        rm -rf /var/www/app_git/crm/frontend-bk/*
+        cp -rf /var/www/app_git/crm/frontend/* /var/www/app_git/crm/frontend-bk/
+        rm -rf /var/www/app_git/crm/frontend/*
+        cd vue/dist/
+        rm -rf env-config.js
+        cp -r * /var/www/app_git/crm/frontend/
+        
+    - name: Update Env-Config
+      run: |
+        cd vue/
+        echo '${{ secrets.APP_CONFIG_STG }}' > env-config.js 
+      
+    - name: Restart Nginx
+      run: |
+        cd vue/
+        cp env-config.js /var/www/app_git/crm/frontend/
+        sudo systemctl reload nginx
+        
+        
+        
+      
+        
+     
