@@ -3,6 +3,7 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 #test1
+#test2
 trigger:
   branches:
     include:
