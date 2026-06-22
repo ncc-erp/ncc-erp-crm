@@ -7,3 +7,5 @@ bin/
 aspnet-core/src/CRM.Web.Host/App_Data/Logs/
 aspnet-core/src/CRM.Web.Mvc/App_Data/Logs/
 aspnet-core/src/CRM.Migrator/Logs/Logs.txt
+
+.pre-commit-config.yaml
